@@ -155,7 +155,8 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
     if p95 > p5:
         sharp = ((sharp.astype(np.float32) - p5) / (p95 - p5) * 255)
         sharp = np.clip(sharp, 0, 255).astype(np.uint8)
-    sharp[sharp > 120] = 255  # ← key fix for clarity
+    # sharp[sharp > 120] = 255  # ← key fix for clarity
+    sharp[sharp > 160] = 255 
     return Image.fromarray(sharp)
 
 def parse_text(text):
@@ -262,8 +263,8 @@ def render_pages(text, style_vec, pg_size, base_fs, ls, margin, neatness, h1_sc,
         if level == "blank": y += base_fs; continue
         hs  = HS[level]
         # Fixed char size like Kaggle — more consistent output
-        ch  = 20
-        cw  = 16
+        ch    = int(base_fs * hs["scale"])  # scale with font_size slider
+        cw    = int(ch * 0.75)
         sw  = int(cw * 0.5)
         sigma = hs["sigma"]
         y += int(base_fs * hs["scale"] * (0.3 if level != "body" else 0))
