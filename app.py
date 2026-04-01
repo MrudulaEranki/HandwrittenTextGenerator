@@ -94,8 +94,8 @@ def extract_style(img_bytes):
     style_vec = s[0] # checking with mu
 
     style_vec = F.normalize(style_vec, dim=1)
-    st.write(f"style_vec min: {style_vec.min().item():.4f}, max: {style_vec.max().item():.4f}") # debug
-    st.write(f"style_vec: {style_vec[0, :8]}")  # first 8 values
+    # st.write(f"style_vec min: {style_vec.min().item():.4f}, max: {style_vec.max().item():.4f}") # debug
+    # st.write(f"style_vec: {style_vec[0, :8]}")  # first 8 values
 
     return style_vec
 
@@ -144,10 +144,10 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
     std  = torch.exp(0.5 * lv) * sigma_mult
     noise = torch.randn_like(mu) * 0.8
     z    = mu + std * noise
-    sv   = style_vec.reshape(1, -1)
+    sv   = style_vec.reshape(1, -1) * 3.0
     # st.write(f"style_vec shape: {sv.shape}, oh shape: {oh.shape}") # debug line
     cond = torch.cat([sv, oh], dim=1)
-    st.write(f"cond first 8: {cond[0, :8]}") #remove later
+    # st.write(f"cond first 8: {cond[0, :8]}") #remove later
     with torch.no_grad():
         r = vae.decode(z, cond)
     arr = (r.squeeze().cpu().numpy() + 1) / 2
