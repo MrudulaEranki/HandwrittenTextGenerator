@@ -2,19 +2,19 @@ pip
 setuptools
 wheel
 
-
 matplotlib
 einops
 timm
-tensorboard
 tqdm
 requests
 distance
-metric
+
 streamlit==1.35.0
 torch==2.2.2
 torchvision==0.17.2
 opencv-python-headless==4.9.0.80
+tensorboard>=2.16
+
 pillow
 numpy
 munch
