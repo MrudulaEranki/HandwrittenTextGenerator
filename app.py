@@ -156,14 +156,18 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
     arr = (r.squeeze().cpu().numpy() + 1) / 2
     arr = (arr * 255).clip(0, 255).astype(np.uint8)
     blurred = cv2.GaussianBlur(arr.astype(np.float32), (3,3), 3)   # (3,3),3
-    sharp   = cv2.addWeighted(arr.astype(np.float32), 2.0, blurred, -1.0, 0)   # 1.5->2.5   -0.5->-1.5
+    sharp   = cv2.addWeighted(arr.astype(np.float32), 2.0, blurred, -1.0, 0)   # 1.5->2.5   -0.5->-1.5    change 67
     sharp   = np.clip(sharp, 0, 255).astype(np.uint8)
     p5, p95 = np.percentile(sharp, 5), np.percentile(sharp, 95)
     if p95 > p5:
         sharp = ((sharp.astype(np.float32) - p5) / (p95 - p5) * 255)
         sharp = np.clip(sharp, 0, 255).astype(np.uint8)
     # sharp[sharp > 120] = 255  # ← key fix for clarity
-    sharp[sharp > 180] = 255 
+    sharp[sharp > 150] = 255  # change 67
+    
+    kernel = np.ones((2,2), np.uint8)
+    sharp = cv2.erode(sharp, kernel, iterations=1) #if bad delete!!!!! change 67
+    
     return Image.fromarray(sharp)
 
 def parse_text(text):
