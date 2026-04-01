@@ -101,36 +101,61 @@ def tensor_to_pil(t):
     img = (t.squeeze().cpu().numpy() + 1) / 2
     return Image.fromarray((img*255).clip(0,255).astype(np.uint8))
 
+# def generate_glyph(char, style_vec, sigma_mult=1.0):
+#     if char not in CHARSET_SET: return None
+#     idx  = CHAR2IDX[char]
+    
+#     oh   = F.one_hot(torch.tensor([idx], device=DEVICE), 36).float()
+#     mu   = vae.char_mu[idx].unsqueeze(0).to(DEVICE)
+#     lv   = vae.char_logvar[idx].unsqueeze(0).to(DEVICE)
+#     std  = torch.exp(0.5 * lv) * sigma_mult
+#     noise = torch.randn_like(mu) * 0.8 
+#     z    = mu + std * noise    #########################works okay
+ 
+#     sv   = style_vec.reshape(1, -1)
+#     cond = torch.cat([sv, oh], dim=1)
+    
+#     with torch.no_grad():
+#         r = vae.decode(z, cond)
+#     arr = (r.squeeze().cpu().numpy() + 1) / 2
+#     arr = (arr * 255).clip(0, 255).astype(np.uint8)
+
+#     # Sharpen
+#     blurred = cv2.GaussianBlur(arr.astype(np.float32), (3,3), 3)
+#     sharp   = cv2.addWeighted(arr.astype(np.float32), 1.5, blurred, -0.5, 0)
+#     sharp   = np.clip(sharp, 0, 255).astype(np.uint8)
+
+#     # Stretch contrast
+#     p5, p95 = np.percentile(sharp, 5), np.percentile(sharp, 95)
+#     if p95 > p5:
+#         sharp = ((sharp.astype(np.float32) - p5) / (p95 - p5) * 255)
+#         sharp = np.clip(sharp, 0, 255).astype(np.uint8)
+
+#     return Image.fromarray(sharp)
+
 def generate_glyph(char, style_vec, sigma_mult=1.0):
     if char not in CHARSET_SET: return None
     idx  = CHAR2IDX[char]
-    
     oh   = F.one_hot(torch.tensor([idx], device=DEVICE), 36).float()
     mu   = vae.char_mu[idx].unsqueeze(0).to(DEVICE)
     lv   = vae.char_logvar[idx].unsqueeze(0).to(DEVICE)
     std  = torch.exp(0.5 * lv) * sigma_mult
-    noise = torch.randn_like(mu) * 0.8 
-    z    = mu + std * noise    #########################works okay
- 
+    noise = torch.randn_like(mu) * 0.8
+    z    = mu + std * noise
     sv   = style_vec.reshape(1, -1)
     cond = torch.cat([sv, oh], dim=1)
-    
     with torch.no_grad():
         r = vae.decode(z, cond)
     arr = (r.squeeze().cpu().numpy() + 1) / 2
     arr = (arr * 255).clip(0, 255).astype(np.uint8)
-
-    # Sharpen
     blurred = cv2.GaussianBlur(arr.astype(np.float32), (3,3), 3)
     sharp   = cv2.addWeighted(arr.astype(np.float32), 1.5, blurred, -0.5, 0)
     sharp   = np.clip(sharp, 0, 255).astype(np.uint8)
-
-    # Stretch contrast
     p5, p95 = np.percentile(sharp, 5), np.percentile(sharp, 95)
     if p95 > p5:
         sharp = ((sharp.astype(np.float32) - p5) / (p95 - p5) * 255)
         sharp = np.clip(sharp, 0, 255).astype(np.uint8)
-
+    sharp[sharp > 120] = 255  # ← key fix for clarity
     return Image.fromarray(sharp)
 
 def parse_text(text):
@@ -143,6 +168,75 @@ def parse_text(text):
         elif l: lines.append(("body", l))
         else: lines.append(("blank",""))
     return lines
+
+# def render_pages(text, style_vec, pg_size, base_fs, ls, margin, neatness, h1_sc, h2_sc, h1_ul):
+#     HS = {
+#         "h1":  {"scale":h1_sc,  "sigma":0.3, "underline":h1_ul, "dilate":True},
+#         "h2":  {"scale":h2_sc,  "sigma":0.5, "underline":False,  "dilate":False},
+#         "h3":  {"scale":1.15,   "sigma":0.7, "underline":False,  "dilate":False},
+#         "body":{"scale":1.0,    "sigma":neatness,"underline":False,"dilate":False},
+#     }
+#     PW, PH = PAGE_SIZES[pg_size]
+#     pages  = []
+#     page   = Image.new("L",(PW,PH),255)
+#     draw   = ImageDraw.Draw(page)
+#     x, y   = margin, margin
+
+#     def new_page():
+#         nonlocal page, draw, x, y
+#         pages.append(page)
+#         page = Image.new("L",(PW,PH),255)
+#         draw = ImageDraw.Draw(page)
+#         x, y = margin, margin
+
+#     for level, txt in parse_text(text):
+#         if level == "blank": y += base_fs; continue
+#         hs     = HS[level]
+#         ch     = int(base_fs * hs["scale"])
+#         cw     = int(ch * 0.75)
+#         sw     = int(cw * 0.5)
+#         sigma  = hs["sigma"]
+#         y += int(ch * (0.3 if level!="body" else 0))
+#         if y + ch > PH - margin: new_page()
+
+#         words = txt.split(); cur = []; cx = 0
+#         wrapped = []
+#         for w in words:
+#             ww = len(w)*cw + sw
+#             if cx+ww > PW-2*margin and cur:
+#                 wrapped.append(cur); cur=[w]; cx=ww
+#             else:
+#                 cur.append(w); cx+=ww
+#         if cur: wrapped.append(cur)
+
+#         for li, wline in enumerate(wrapped):
+#             if y+ch > PH-margin: new_page()
+#             x = margin; ax = margin
+#             for word in wline:
+#                 wc = "".join(c for c in word.lower() if c in CHARSET_SET)
+#                 for char in wc:
+#                     if x+cw > PW-margin: break
+#                     g = generate_glyph(char, style_vec, sigma)
+#                     if g is None: x+=cw; continue
+#                     g = g.resize((cw,ch), Image.LANCZOS)
+#                     if hs["dilate"]:
+#                         a = np.array(g)
+#                         a = cv2.dilate(255-a, np.ones((2,2),np.uint8))
+#                         g = Image.fromarray(255-a)
+#                     jit = np.random.randint(-2,3)
+#                     ga  = np.array(g)
+#                     page.paste(Image.fromarray(np.zeros_like(ga)),
+#                                (x, y+jit),
+#                                mask=Image.fromarray((255-ga).astype(np.uint8)))
+#                     x += cw; ax = x
+#                 x += sw
+#             if hs["underline"] and li==len(wrapped)-1:
+#                 draw.line([(margin,y+ch+4),(ax,y+ch+4)],fill=0,width=2)
+#             y += int(ch*ls)
+#         y += int(ch*0.2)
+
+#     pages.append(page)
+#     return pages
 
 def render_pages(text, style_vec, pg_size, base_fs, ls, margin, neatness, h1_sc, h2_sc, h1_ul):
     HS = {
@@ -166,49 +260,43 @@ def render_pages(text, style_vec, pg_size, base_fs, ls, margin, neatness, h1_sc,
 
     for level, txt in parse_text(text):
         if level == "blank": y += base_fs; continue
-        hs     = HS[level]
-        ch     = int(base_fs * hs["scale"])
-        cw     = int(ch * 0.75)
-        sw     = int(cw * 0.5)
-        sigma  = hs["sigma"]
-        y += int(ch * (0.3 if level!="body" else 0))
+        hs  = HS[level]
+        # Fixed char size like Kaggle — more consistent output
+        ch  = 20
+        cw  = 16
+        sw  = int(cw * 0.5)
+        sigma = hs["sigma"]
+        y += int(base_fs * hs["scale"] * (0.3 if level != "body" else 0))
         if y + ch > PH - margin: new_page()
 
-        words = txt.split(); cur = []; cx = 0
-        wrapped = []
-        for w in words:
-            ww = len(w)*cw + sw
-            if cx+ww > PW-2*margin and cur:
-                wrapped.append(cur); cur=[w]; cx=ww
-            else:
-                cur.append(w); cx+=ww
-        if cur: wrapped.append(cur)
-
-        for li, wline in enumerate(wrapped):
-            if y+ch > PH-margin: new_page()
-            x = margin; ax = margin
-            for word in wline:
-                wc = "".join(c for c in word.lower() if c in CHARSET_SET)
-                for char in wc:
-                    if x+cw > PW-margin: break
-                    g = generate_glyph(char, style_vec, sigma)
-                    if g is None: x+=cw; continue
-                    g = g.resize((cw,ch), Image.LANCZOS)
-                    if hs["dilate"]:
-                        a = np.array(g)
-                        a = cv2.dilate(255-a, np.ones((2,2),np.uint8))
-                        g = Image.fromarray(255-a)
-                    jit = np.random.randint(-2,3)
-                    ga  = np.array(g)
-                    page.paste(Image.fromarray(np.zeros_like(ga)),
-                               (x, y+jit),
-                               mask=Image.fromarray((255-ga).astype(np.uint8)))
-                    x += cw; ax = x
-                x += sw
-            if hs["underline"] and li==len(wrapped)-1:
-                draw.line([(margin,y+ch+4),(ax,y+ch+4)],fill=0,width=2)
-            y += int(ch*ls)
-        y += int(ch*0.2)
+        words = txt.split()
+        for word in words:
+            wc = "".join(c for c in word.lower() if c in CHARSET_SET)
+            ww = len(wc) * cw
+            if x + ww > PW - margin and x > margin:
+                x  = margin
+                y += int(ch * 1.4)
+            if y + ch > PH - margin: new_page()
+            for char in wc:
+                if x + cw > PW - margin: break
+                g = generate_glyph(char, style_vec, sigma)
+                if g is None: x += cw; continue
+                g = g.resize((cw, ch), Image.LANCZOS)
+                if hs["dilate"]:
+                    a = np.array(g)
+                    a = cv2.dilate(255-a, np.ones((2,2),np.uint8))
+                    g = Image.fromarray(255-a)
+                jit = np.random.randint(-2, 3)
+                ga  = np.array(g)
+                page.paste(Image.fromarray(np.zeros_like(ga)),
+                           (x, y+jit),
+                           mask=Image.fromarray((255-ga).astype(np.uint8)))
+                x += cw
+            if hs["underline"]:
+                draw.line([(margin, y+ch+3), (x, y+ch+3)], fill=0, width=2)
+            x += sw + np.random.randint(-2, 3)  # random space jitter like Kaggle
+        x  = margin
+        y += int(ch * 1.6)
 
     pages.append(page)
     return pages
