@@ -145,7 +145,8 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
     noise = torch.randn_like(mu) * 0.8
     z    = mu + std * noise
     
-    sv   = style_vec.reshape(1, -1) * 3.0
+    # sv   = style_vec.reshape(1, -1) * 3.0
+    sv   = style_vec.reshape(1, -1)
     
     # st.write(f"style_vec shape: {sv.shape}, oh shape: {oh.shape}") # debug line
     cond = torch.cat([sv, oh], dim=1)
@@ -155,7 +156,7 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
     arr = (r.squeeze().cpu().numpy() + 1) / 2
     arr = (arr * 255).clip(0, 255).astype(np.uint8)
     blurred = cv2.GaussianBlur(arr.astype(np.float32), (3,3), 3)   # (3,3),3
-    sharp   = cv2.addWeighted(arr.astype(np.float32), 1.5, blurred, -0.2, 0)   # 1.5->2.5   -0.5->-1.5
+    sharp   = cv2.addWeighted(arr.astype(np.float32), 2.0, blurred, -1.0, 0)   # 1.5->2.5   -0.5->-1.5
     sharp   = np.clip(sharp, 0, 255).astype(np.uint8)
     p5, p95 = np.percentile(sharp, 5), np.percentile(sharp, 95)
     if p95 > p5:
