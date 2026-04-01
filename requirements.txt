@@ -1,4 +1,3 @@
-streamlit
 torch
 torchvision
 opencv-python-headless
@@ -8,3 +7,9 @@ pyyaml
 munch
 reportlab
 python-docx
+matplotlib
+einops
+timm
+tensorboard
+tqdm
+requests
