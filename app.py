@@ -91,7 +91,7 @@ def extract_style(img_bytes):
     with torch.no_grad():
         s = style_encoder(t, il, cnn_backbone=style_backbone, vae_mode=True)
 
-    style_vec = s[0] # checking with mu
+    style_vec = s[1] # checking with mu
 
     style_vec = F.normalize(style_vec, dim=1) # trying to not normalise so as to not squash
     # st.write(f"style_vec min: {style_vec.min().item():.4f}, max: {style_vec.max().item():.4f}") # debug
@@ -154,15 +154,15 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
         r = vae.decode(z, cond)
     arr = (r.squeeze().cpu().numpy() + 1) / 2
     arr = (arr * 255).clip(0, 255).astype(np.uint8)
-    blurred = cv2.GaussianBlur(arr.astype(np.float32), (3,3), 3)
-    sharp   = cv2.addWeighted(arr.astype(np.float32), 1.5, blurred, -0.5, 0)
+    blurred = cv2.GaussianBlur(arr.astype(np.float32), (3,3), 2)   # (3,3),3
+    sharp   = cv2.addWeighted(arr.astype(np.float32), 2.5, blurred, -1.5, 0)   # 1.5->2.5   -0.5->-1.5
     sharp   = np.clip(sharp, 0, 255).astype(np.uint8)
     p5, p95 = np.percentile(sharp, 5), np.percentile(sharp, 95)
     if p95 > p5:
         sharp = ((sharp.astype(np.float32) - p5) / (p95 - p5) * 255)
         sharp = np.clip(sharp, 0, 255).astype(np.uint8)
     # sharp[sharp > 120] = 255  # ← key fix for clarity
-    sharp[sharp > 160] = 255 
+    sharp[sharp > 180] = 255 
     return Image.fromarray(sharp)
 
 def parse_text(text):
