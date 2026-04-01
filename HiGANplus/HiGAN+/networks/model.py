@@ -11,8 +11,8 @@ from torch.nn import CTCLoss, CrossEntropyLoss
 import torch.distributed as dist
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
-from metric.fid_kid_is import calculate_fid_kid_is
-from metric.mssim_psnr import calculate_mssim_psnr
+# from metric.fid_kid_is import calculate_fid_kid_is
+# from metric.mssim_psnr import calculate_mssim_psnr
 from networks.utils import _info, set_requires_grad, get_scheduler, idx_to_words, rescale_images, rescale_images2, \
                             words_to_images, ctc_greedy_decoder, extract_all_patches
 from networks.BigGAN_networks import Generator, Discriminator, PatchDiscriminator

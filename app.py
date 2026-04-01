@@ -105,7 +105,7 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
     if char not in CHARSET_SET: return None
     idx  = CHAR2IDX[char]
     
-    oh   = F.one_hot(torch.tensor([idx], device=device), 36).float()
+    oh   = F.one_hot(torch.tensor([idx], device=DEVICE), 36).float()
     mu   = vae.char_mu[idx].unsqueeze(0).to(device)
     lv   = vae.char_logvar[idx].unsqueeze(0).to(device)
     std  = torch.exp(0.5 * lv) * sigma_mult
