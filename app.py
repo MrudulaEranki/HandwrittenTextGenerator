@@ -106,8 +106,8 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
     idx  = CHAR2IDX[char]
     
     oh   = F.one_hot(torch.tensor([idx], device=DEVICE), 36).float()
-    mu   = vae.char_mu[idx].unsqueeze(0).to(device)
-    lv   = vae.char_logvar[idx].unsqueeze(0).to(device)
+    mu   = vae.char_mu[idx].unsqueeze(0).to(DEVICE)
+    lv   = vae.char_logvar[idx].unsqueeze(0).to(DEVICE)
     std  = torch.exp(0.5 * lv) * sigma_mult
     noise = torch.randn_like(mu) * 0.8 
     z    = mu + std * noise    #########################works okay
