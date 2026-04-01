@@ -1,0 +1,10 @@
+streamlit
+torch
+torchvision
+opencv-python-headless
+pillow
+numpy
+pyyaml
+munch
+reportlab
+python-docx
