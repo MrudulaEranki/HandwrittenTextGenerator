@@ -91,7 +91,7 @@ def extract_style(img_bytes):
     with torch.no_grad():
         s = style_encoder(t, il, cnn_backbone=style_backbone, vae_mode=True)
 
-    style_vec = s[1]
+    style_vec = s[0] # checking with mu
 
     style_vec = F.normalize(style_vec, dim=1)
 
@@ -143,7 +143,7 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
     noise = torch.randn_like(mu) * 0.8
     z    = mu + std * noise
     sv   = style_vec.reshape(1, -1)
-    st.write(f"style_vec shape: {sv.shape}, oh shape: {oh.shape}") # debug line
+    # st.write(f"style_vec shape: {sv.shape}, oh shape: {oh.shape}") # debug line
     cond = torch.cat([sv, oh], dim=1)
     with torch.no_grad():
         r = vae.decode(z, cond)
