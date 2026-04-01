@@ -154,8 +154,8 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
         r = vae.decode(z, cond)
     arr = (r.squeeze().cpu().numpy() + 1) / 2
     arr = (arr * 255).clip(0, 255).astype(np.uint8)
-    blurred = cv2.GaussianBlur(arr.astype(np.float32), (3,3), 2)   # (3,3),3
-    sharp   = cv2.addWeighted(arr.astype(np.float32), 2.0, blurred, -0.5, 0)   # 1.5->2.5   -0.5->-1.5
+    blurred = cv2.GaussianBlur(arr.astype(np.float32), (3,3), 1)   # (3,3),3
+    sharp   = cv2.addWeighted(arr.astype(np.float32), 2.3, blurred, -0.5, 0)   # 1.5->2.5   -0.5->-1.5
     sharp   = np.clip(sharp, 0, 255).astype(np.uint8)
     p5, p95 = np.percentile(sharp, 5), np.percentile(sharp, 95)
     if p95 > p5:
