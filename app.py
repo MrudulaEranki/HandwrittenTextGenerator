@@ -145,7 +145,7 @@ def generate_glyph(char, style_vec, sigma_mult=1.0):
     noise = torch.randn_like(mu) * 0.8
     z    = mu + std * noise
     
-    sv   = style_vec.reshape(1, -1) * 10.0
+    sv   = style_vec.reshape(1, -1) * 5.0
     
     # st.write(f"style_vec shape: {sv.shape}, oh shape: {oh.shape}") # debug line
     cond = torch.cat([sv, oh], dim=1)
